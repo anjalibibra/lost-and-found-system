@@ -226,7 +226,10 @@ function displayMatchResults(containerId, matches, title) {
 function createItemCard(item) {
     const date = new Date(item.date).toLocaleDateString();
     const time = new Date(item.date).toLocaleTimeString();
-    const imageHtml = item.image ? `<img src="/uploads/${item.image}" alt="Item image" class="item-image">` : '';
+    const imageSrc = item.image
+      ? (item.image.startsWith('data:') ? item.image : `/uploads/${item.image}`)
+      : '';
+    const imageHtml = imageSrc ? `<img src="${imageSrc}" alt="Item image" class="item-image">` : '';
     
     return `
         <div class="item-card ${item.type}">

@@ -6,21 +6,24 @@ const multer = require('multer');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const isVercel = !!process.env.VERCEL;
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'public/uploads/');
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + '-' + file.originalname);
-  }
-});
+// Configure multer: Vercel filesystem is read-only except /tmp — use memory + store as data URL in DB
+const storage = isVercel
+  ? multer.memoryStorage()
+  : multer.diskStorage({
+      destination: function (req, file, cb) {
+        cb(null, 'public/uploads/');
+      },
+      filename: function (req, file, cb) {
+        cb(null, Date.now() + '-' + file.originalname);
+      }
+    });
 
 const upload = multer({ storage: storage });
 
@@ -75,7 +78,15 @@ app.post('/api/items', upload.single('image'), async (req, res) => {
     console.log('File uploaded:', req.file);
     
     const { type, category, location, description, contact } = req.body;
-    const image = req.file ? req.file.filename : '';
+    let image = '';
+    if (req.file) {
+      if (isVercel && req.file.buffer) {
+        const mime = req.file.mimetype || 'image/jpeg';
+        image = `data:${mime};base64,${req.file.buffer.toString('base64')}`;
+      } else {
+        image = req.file.filename;
+      }
+    }
 
     // Validate required fields
     if (!type || !category || !location) {
@@ -239,8 +250,12 @@ app.use('*', (req, res) => {
   });
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-  console.log(`Visit http://localhost:${PORT} to view the application`);
-});
+// Local dev only; Vercel invokes this module as a serverless handler (no listen)
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+    console.log(`Visit http://localhost:${PORT} to view the application`);
+  });
+}
+
+module.exports = app;
