@@ -387,6 +387,10 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - Admin dashboard
 - Analytics and reporting
 
+## Contributors
+- Anjali Bibra
+- Mitali Rana
+
 ## Contact
 
 For questions or support, please contact [your-email@example.com]
